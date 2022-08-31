@@ -5,7 +5,7 @@ _A collection of workflows I use in my repos_
 ## Usage
 
 1. Make sure reusable repos are enabled in your repository: `REPO/settings/actions` -> Actions permissions
-2. Create a new workflow:
+2. Create a new workflow: you can either use one from the `dependents` directory in this repo or create your own
 
 ```yml
 # .github/workflows/NAME.yml
