@@ -1,0 +1,73 @@
+name: Deploy on GitHub Pages
+on:
+  workflow_call:
+    inputs:
+      folder:
+        description: The name of the folder that contains the build, without leading characters (so './a/b' -> 'a/b')
+        required: true
+        type: string
+
+      build_cmd:
+        description: The command to use to build the website
+        required: false
+        default: npm run build
+        type: string
+      dependency_cache:
+        description: The type of dependecy cache to use (see actions/setup-node). Set to 'false' or empty to disable caching.
+        required: false
+        default: npm
+        type: string
+      install_cmd:
+        description: The command to use to install dependencies
+        required: false
+        default: npm ci
+        type: string
+      pages_branch:
+        description: The branch that hosts the GitHub Pages deployment
+        required: false
+        default: gh-pages
+        type: string
+      preview_dir:
+        description: The directory that will contain PR previews
+        required: false
+        default: pr-preview
+        type: string
+
+concurrency: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+
+jobs:
+  production:
+    name: Production
+    if: github.event_name == 'push'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - if: inputs.dependency_cache && inputs.dependency_cache != 'false'
+        uses: actions/setup-node@v3
+        with:
+          cache: ${{ inputs.dependency_cache }}
+      - run: ${{ inputs.install_cmd }}
+      - run: ${{ inputs.build_cmd }}
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: ${{ inputs.folder }}
+          branch: ${{ inputs.pages_branch }}
+          clean-exclude: ${{ inputs.preview_dir }}
+
+  preview:
+    name: Preview
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - if: inputs.dependency_cache && inputs.dependency_cache != 'false'
+        uses: actions/setup-node@v3
+        with:
+          cache: ${{ inputs.dependency_cache }}
+      - run: ${{ inputs.install_cmd }}
+      - run: ${{ inputs.build_cmd }}
+      - uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: ${{ inputs.folder }}
+          preview-branch: ${{ inputs.pages_branch }}
+          umbrella-dir: ${{ inputs.preview_dir }}
