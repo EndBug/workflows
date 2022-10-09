@@ -1,0 +1,19 @@
+name: Sync labels
+on:
+  workflow_call:
+    inputs:
+      config-file:
+        description: The config file to use for EndBug/label-sync.
+        type: string
+        default: 'https://raw.githubusercontent.com/EndBug/labels/main/labels.yml'
+        required: true
+
+jobs:
+  sync:
+    name: Run EndBug/label-sync
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: EndBug/label-sync@v2
+        with:
+          config-file: ${{ inputs.config-file }}
