@@ -3,5 +3,5 @@ on:
   workflow_dispatch:
 
 jobs:
-  stale:
+  sync:
     uses: EndBug/workflows/.github/workflows/labels.yml@main
