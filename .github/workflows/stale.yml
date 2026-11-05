@@ -10,6 +10,51 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
+      # actions/stale cannot exempt authors. Label Dependabot PRs so the step below skips them.
+      - name: Exempt Dependabot pull requests
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exemptLabel = 'dependabot'
+            const staleLabel = 'status: stale'
+            const {owner, repo} = context.repo
+            const items = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              creator: 'dependabot[bot]',
+              per_page: 100
+            })
+
+            for (const item of items) {
+              if (!item.pull_request) continue
+
+              const names = (item.labels || []).map(label => label.name)
+              if (!names.includes(exemptLabel)) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: item.number,
+                  labels: [exemptLabel]
+                })
+                core.info(`#${item.number}: added ${exemptLabel}`)
+              }
+
+              if (names.includes(staleLabel)) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: item.number,
+                    name: staleLabel
+                  })
+                  core.info(`#${item.number}: removed ${staleLabel}`)
+                } catch (error) {
+                  const status = error.status || (error.response && error.response.status)
+                  if (status !== 404) throw error
+                }
+              }
+            }
       - uses: actions/stale@v7
         with:
           days-before-stale: 20
@@ -25,4 +70,4 @@ jobs:
           stale-issue-label: 'status: stale'
           stale-pr-label: 'status: stale'
           exempt-issue-labels: 'pinned,security,status: pinned,type: security'
-          exempt-pr-labels: 'pinned,security,status: pinned,type: security'
+          exempt-pr-labels: 'pinned,security,status: pinned,type: security,dependabot'
